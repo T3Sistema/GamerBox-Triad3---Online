@@ -4,18 +4,87 @@ import QRCode from 'qrcode';
 
 const QRCodeModal: React.FC<{ 
   dataUrl: string; 
-  cleanUrl: string;
   raffleName: string; 
+  companyName: string;
   onClose: () => void 
-}> = ({ dataUrl, cleanUrl, raffleName, onClose }) => {
+}> = ({ dataUrl, raffleName, companyName, onClose }) => {
 
   const handleDownload = () => {
-    const link = document.createElement('a');
-    link.href = dataUrl;
-    link.download = `qrcode_${raffleName.replace(/\s+/g, '_')}.png`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const canvasWidth = 400;
+    const canvasHeight = 550;
+    const padding = 20;
+    const borderRadius = 12;
+    const qrSize = 256;
+    const qrPadding = 8;
+    const qrBoxSize = qrSize + qrPadding * 2;
+
+    canvas.width = canvasWidth;
+    canvas.height = canvasHeight;
+
+    // Background
+    ctx.fillStyle = '#10141F'; // dark-card color
+    ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+    
+    // Border
+    ctx.strokeStyle = '#00D1FF'; // dark-primary color
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(borderRadius, 0);
+    ctx.arcTo(canvasWidth, 0, canvasWidth, canvasHeight, borderRadius);
+    ctx.arcTo(canvasWidth, canvasHeight, 0, canvasHeight, borderRadius);
+    ctx.arcTo(0, canvasHeight, 0, 0, borderRadius);
+    ctx.arcTo(0, 0, canvasWidth, 0, borderRadius);
+    ctx.closePath();
+    ctx.stroke();
+
+    // Title
+    ctx.fillStyle = '#00D1FF';
+    ctx.font = 'bold 24px Poppins, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('QR Code para:', canvasWidth / 2, padding + 40);
+
+    // Raffle Name
+    ctx.fillStyle = '#E0E0E0'; // dark-text color
+    ctx.font = '20px Poppins, sans-serif';
+    ctx.fillText(raffleName, canvasWidth / 2, padding + 80);
+
+    const qrImg = new Image();
+    qrImg.onload = () => {
+        // QR Code white rounded background
+        const qrBoxX = (canvasWidth - qrBoxSize) / 2;
+        const qrBoxY = padding + 110;
+        ctx.fillStyle = 'white';
+        ctx.beginPath();
+        ctx.moveTo(qrBoxX + borderRadius, qrBoxY);
+        ctx.arcTo(qrBoxX + qrBoxSize, qrBoxY, qrBoxX + qrBoxSize, qrBoxY + qrBoxSize, borderRadius);
+        ctx.arcTo(qrBoxX + qrBoxSize, qrBoxY + qrBoxSize, qrBoxX, qrBoxY + qrBoxSize, borderRadius);
+        ctx.arcTo(qrBoxX, qrBoxY + qrBoxSize, qrBoxX, qrBoxY, borderRadius);
+        ctx.arcTo(qrBoxX, qrBoxY, qrBoxX + qrBoxSize, qrBoxY, borderRadius);
+        ctx.closePath();
+        ctx.fill();
+
+        // Draw QR code image
+        ctx.drawImage(qrImg, qrBoxX + qrPadding, qrBoxY + qrPadding, qrSize, qrSize);
+
+        // Company Name
+        ctx.fillStyle = '#E0E0E0';
+        ctx.font = 'bold 18px Poppins, sans-serif';
+        ctx.fillText(companyName, canvasWidth / 2, qrBoxY + qrBoxSize + 40);
+
+        // Trigger download
+        const finalDataUrl = canvas.toDataURL('image/png');
+        const link = document.createElement('a');
+        link.href = finalDataUrl;
+        link.download = `qrcode_${companyName.replace(/\s+/g, '_')}_${raffleName.replace(/\s+/g, '_')}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+    qrImg.src = dataUrl;
   };
 
   return (
@@ -23,8 +92,10 @@ const QRCodeModal: React.FC<{
       <div className="bg-dark-card p-8 rounded-lg shadow-2xl text-center border border-dark-primary" onClick={e => e.stopPropagation()}>
         <h3 className="text-2xl font-bold text-dark-primary mb-2">QR Code para:</h3>
         <p className="text-xl text-dark-text mb-4">{raffleName}</p>
-        <img src={dataUrl} alt={`QR Code for ${raffleName}`} className="mx-auto border-4 border-white rounded-lg"/>
-        <p className="text-xs text-gray-400 mt-4 break-all max-w-xs">{cleanUrl}</p> 
+        <div className="bg-white p-2 rounded-lg inline-block">
+          <img src={dataUrl} alt={`QR Code for ${raffleName}`} className="mx-auto" />
+        </div>
+        <p className="text-lg font-semibold text-white mt-4 break-all max-w-xs">{companyName}</p> 
         <div className="flex gap-4 mt-6">
           <button 
             onClick={handleDownload}
@@ -56,7 +127,6 @@ export const GerenciarSorteios: React.FC = () => {
   const [showRaffles, setShowRaffles] = useState(false);
   
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState('');
-  const [qrCodeCleanUrl, setQrCodeCleanUrl] = useState('');
   const [qrRaffleName, setQrRaffleName] = useState('');
 
   const { 
@@ -103,14 +173,11 @@ export const GerenciarSorteios: React.FC = () => {
   
   const handleGenerateQrCode = async (raffleCode: string, raffleName: string) => {
     try {
-      // Constrói a URL pública e absoluta para o QR Code.
-      // Isso evita o problema da URL `blob:` que é local e temporária.
       const baseUrl = `${window.location.origin}${window.location.pathname}`;
       const participationUrl = `${baseUrl}#/participar?code=${raffleCode}`;
       
       const dataUrl = await QRCode.toDataURL(participationUrl, { width: 256, margin: 2 });
       setQrCodeDataUrl(dataUrl);
-      setQrCodeCleanUrl(participationUrl);
       setQrRaffleName(raffleName);
     } catch (err) {
       console.error('Failed to generate QR code', err);
@@ -121,8 +188,8 @@ export const GerenciarSorteios: React.FC = () => {
     <div className="container mx-auto p-4 md:p-8">
         {qrCodeDataUrl && <QRCodeModal 
             dataUrl={qrCodeDataUrl} 
-            cleanUrl={qrCodeCleanUrl}
             raffleName={qrRaffleName} 
+            companyName={loggedInOrganizer?.name || 'Evento'}
             onClose={() => setQrCodeDataUrl('')} 
         />}
         {organizerEvents.length > 0 && (

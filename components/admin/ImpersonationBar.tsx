@@ -1,11 +1,10 @@
 import React from 'react';
 import { useData } from '../../context/DataContext';
-import { Organizer } from '../../types';
 
 export const ImpersonationBar: React.FC = () => {
-  const { loggedInOrganizer, stopImpersonating } = useData();
+  const { loggedInOrganizer, stopImpersonating, impersonatingFromAdmin } = useData();
 
-  if (!loggedInOrganizer) return null;
+  if (!impersonatingFromAdmin || !loggedInOrganizer) return null;
 
   return (
     <div className="bg-yellow-500 text-black py-2 px-4 text-center text-sm sticky top-0 z-50">

@@ -76,6 +76,7 @@ interface DataContextType {
   organizerEvents: Event[];
   selectedEventRaffles: Raffle[];
   isSuperAdmin: boolean;
+  impersonatingFromAdmin: boolean;
 
   // Setters
   setSelectedEventId: (id: string | null) => void;
@@ -589,7 +590,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     organizers, events, companies, participants: eventParticipants, winners, eventCompanies,
     loggedInOrganizer: impersonatingFromAdmin ? loggedInOrganizer : (isSuperAdmin ? null : loggedInOrganizer),
     loggedInCollaborator, loggedInCollaboratorCompany,
-    selectedEvent, selectedRaffle, organizerEvents, selectedEventRaffles, isSuperAdmin,
+    selectedEvent, selectedRaffle, organizerEvents, selectedEventRaffles, isSuperAdmin, impersonatingFromAdmin,
     setSelectedEventId, setSelectedRaffleId,
     login, logout, loginSuperAdmin, logoutSuperAdmin, logoutCollaborator, viewAsOrganizer, stopImpersonating,
     addParticipant,
