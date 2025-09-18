@@ -49,7 +49,7 @@ export const RoletaWheel: React.FC<RoletaWheelProps> = ({
     if (numPrizes === 0) return;
 
     if (isSpinning) {
-      const fullSpins = Math.floor(Math.random() * 2) + 4; 
+      const fullSpins = Math.floor(Math.random() * 2) + 4;
       let targetAngleForPrizeSegment = 0;
 
       if (winningPrizeId) {
@@ -57,7 +57,7 @@ export const RoletaWheel: React.FC<RoletaWheelProps> = ({
         if (winningIndex !== -1) {
           targetAngleForPrizeSegment = -(winningIndex * anglePerSlice + anglePerSlice / 2);
         } else {
-          targetAngleForPrizeSegment = Math.random() * -360; 
+          targetAngleForPrizeSegment = Math.random() * -360;
         }
       } else {
         targetAngleForPrizeSegment = Math.random() * -360;
@@ -65,13 +65,6 @@ export const RoletaWheel: React.FC<RoletaWheelProps> = ({
       
       const newTargetRotation = (fullSpins * 360) + targetAngleForPrizeSegment;
       setRotation(newTargetRotation);
-
-    } else if (!isSpinning && winningPrizeId) {
-      const winningIndex = prizes.findIndex(p => p.id === winningPrizeId);
-      if (winningIndex !== -1) {
-        const finalAngle = -(winningIndex * anglePerSlice + anglePerSlice / 2);
-        setRotation(finalAngle);
-      }
     }
   }, [isSpinning, winningPrizeId, prizes, anglePerSlice, numPrizes]);
 
