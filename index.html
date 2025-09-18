@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sorteador de Eventos</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Poppins', 'sans-serif'],
+          },
+          colors: {
+            light: {
+              background: '#F9FAFB', // very light gray
+              text: '#1F2937',       // dark gray
+              primary: '#3B82F6',      // blue
+              secondary: '#1D4ED8',    // darker blue
+              border: '#E5E7EB',      // light gray
+              card: '#FFFFFF'         // white
+            },
+            dark: {
+              background: '#05080F',
+              text: '#E0E0E0',
+              primary: '#00D1FF',
+              secondary: '#0052FF',
+              border: '#1A202C',
+              card: '#10141F'
+            }
+          },
+          keyframes: {
+            fadeIn: {
+              '0%': { opacity: 0, transform: 'translateY(20px)' },
+              '100%': { opacity: 1, transform: 'translateY(0)' },
+            },
+            pop: {
+              '0%, 100%': { transform: 'scale(1)' },
+              '50%': { transform: 'scale(1.1)' },
+            },
+            pulse: {
+              '0%, 100%': { opacity: 1 },
+              '50%': { opacity: .9 },
+            },
+            glow: {
+              '0%, 100%': { boxShadow: '0 0 10px -5px currentColor' },
+              '50%': { boxShadow: '0 0 20px -5px currentColor' },
+            }
+          },
+          animation: {
+            fadeIn: 'fadeIn 0.5s ease-out forwards',
+            pop: 'pop 0.5s ease-in-out',
+            pulse: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+            glow: 'glow 3s ease-in-out infinite',
+          }
+        }
+      }
+    }
+  </script>
+<script type="importmap">
+{
+  "imports": {
+    "react-dom/": "https://esm.sh/react-dom@^19.1.1/",
+    "react/": "https://esm.sh/react@^19.1.1/",
+    "react": "https://esm.sh/react@^19.1.1",
+    "react-router-dom": "https://esm.sh/react-router-dom@^7.8.2",
+    "jspdf": "https://esm.sh/jspdf@^2.5.1",
+    "jspdf-autotable": "https://esm.sh/jspdf-autotable@^3.8.2",
+    "qrcode": "https://esm.sh/qrcode@^1.5.3",
+    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2"
+  }
+}
+</script>
+</head>
+<body class="text-light-text dark:text-dark-text">
+  <div id="root"></div>
+  <script type="module" src="/index.tsx"></script>
+</body>
+</html>
