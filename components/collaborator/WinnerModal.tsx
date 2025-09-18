@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Prize } from '../../types';
 import { TrophyIcon } from '../icons/TrophyIcon';
@@ -6,9 +7,10 @@ interface WinnerModalProps {
   isOpen: boolean;
   onClose: () => void;
   winner: Prize | null;
+  participantName?: string;
 }
 
-export const WinnerModal: React.FC<WinnerModalProps> = ({ isOpen, onClose, winner }) => {
+export const WinnerModal: React.FC<WinnerModalProps> = ({ isOpen, onClose, winner, participantName }) => {
   if (!isOpen || !winner) return null;
 
   return (
@@ -21,7 +23,9 @@ export const WinnerModal: React.FC<WinnerModalProps> = ({ isOpen, onClose, winne
         onClick={e => e.stopPropagation()}
       >
         <TrophyIcon className="w-24 h-24 mx-auto text-yellow-400 mb-4 animate-pop" />
-        <h2 className="text-2xl font-semibold text-gray-500 dark:text-gray-400">Parabéns! O prêmio é:</h2>
+        <h2 className="text-2xl font-semibold text-gray-500 dark:text-gray-400">
+          {participantName ? `Parabéns, ${participantName.split(' ')[0]}!` : 'Parabéns!'} O prêmio é:
+        </h2>
         <p className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-light-primary to-light-secondary dark:from-dark-primary dark:to-dark-secondary my-4">
           {winner.name}
         </p>
