@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useData } from '../context/DataContext';
 import { Prize } from '../types';
 import { Link } from 'react-router-dom';
@@ -14,7 +14,7 @@ import { QRCodeModal } from '../components/collaborator/QRCodeModal';
 import QRCode from 'qrcode';
 
 export const CollaboratorRoleta: React.FC = () => {
-    const { loggedInCollaboratorCompany, companyPrizes, savePrize, deletePrize, updateCompanySettings } = useData();
+    const { loggedInCollaboratorCompany, companyPrizes, savePrize, deletePrize, updateCompanySettings, roletaParticipants } = useData();
 
     const [isFormModalOpen, setIsFormModalOpen] = useState(false);
     const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
@@ -26,6 +26,7 @@ export const CollaboratorRoleta: React.FC = () => {
     const [winner, setWinner] = useState<Prize | null>(null);
     const [qrCodeData, setQrCodeData] = useState({ dataUrl: '', cleanUrl: '' });
     const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+    const [activeTab, setActiveTab] = useState<'spun' | 'registered'>('spun');
 
     // State for the new roulette wheel
     const [isSpinning, setIsSpinning] = useState(false);
@@ -38,6 +39,15 @@ export const CollaboratorRoleta: React.FC = () => {
             setColors(loggedInCollaboratorCompany.roletaColors);
         }
     }, [loggedInCollaboratorCompany]);
+
+    const spunParticipants = useMemo(() => 
+        roletaParticipants.filter(p => p.spunAt), 
+    [roletaParticipants]);
+
+    const registeredOnlyParticipants = useMemo(() => 
+        roletaParticipants.filter(p => !p.spunAt), 
+    [roletaParticipants]);
+
 
     if (!loggedInCollaboratorCompany) {
         return <div className="text-center p-8">Carregando dados do estande...</div>;
@@ -112,6 +122,14 @@ export const CollaboratorRoleta: React.FC = () => {
           setNotification({ message: 'Falha ao gerar QR Code.', type: 'error' });
         }
     };
+
+    const tabClasses = (isActive: boolean) => 
+        `px-4 py-2 text-sm font-medium rounded-t-lg transition-colors focus:outline-none ${
+        isActive
+            ? 'border-b-2 border-light-primary dark:border-dark-primary text-light-primary dark:text-dark-primary'
+            : 'text-gray-500 hover:text-light-text dark:hover:text-dark-text'
+    }`;
+
 
     return (
         <>
@@ -196,6 +214,66 @@ export const CollaboratorRoleta: React.FC = () => {
                                 Gerar QR Code para Participantes
                             </button>
                         </div>
+                    </div>
+                </div>
+
+                <div className="mt-12 bg-light-card dark:bg-dark-card shadow-lg rounded-lg p-6">
+                    <h3 className="text-2xl font-bold text-light-text dark:text-dark-text mb-4">Painel de Participantes</h3>
+                    <div className="border-b border-light-border dark:border-dark-border">
+                        <nav className="-mb-px flex space-x-6" aria-label="Tabs">
+                            <button onClick={() => setActiveTab('spun')} className={tabClasses(activeTab === 'spun')}>
+                                Sorteados ({spunParticipants.length})
+                            </button>
+                            <button onClick={() => setActiveTab('registered')} className={tabClasses(activeTab === 'registered')}>
+                                Apenas Cadastrados ({registeredOnlyParticipants.length})
+                            </button>
+                        </nav>
+                    </div>
+
+                    <div className="mt-6 overflow-x-auto">
+                        {activeTab === 'spun' && (
+                             <table className="min-w-full divide-y divide-light-border dark:divide-dark-border">
+                                <thead className="bg-light-background dark:bg-dark-background/50">
+                                    <tr>
+                                        <th className="px-4 py-2 text-left text-xs font-medium uppercase">Nome</th>
+                                        <th className="px-4 py-2 text-left text-xs font-medium uppercase">Contato</th>
+                                        <th className="px-4 py-2 text-left text-xs font-medium uppercase">Prêmio</th>
+                                        <th className="px-4 py-2 text-left text-xs font-medium uppercase">Data/Hora Sorteio</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-light-border dark:divide-dark-border">
+                                    {spunParticipants.map(p => (
+                                        <tr key={p.id}>
+                                            <td className="px-4 py-3 whitespace-nowrap text-sm font-medium">{p.name}</td>
+                                            <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{p.email}<br/>{p.phone}</td>
+                                            <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold">{p.prizeName}</td>
+                                            <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{p.spunAt ? new Date(p.spunAt).toLocaleString('pt-BR') : '-'}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        )}
+                         {activeTab === 'registered' && (
+                             <table className="min-w-full divide-y divide-light-border dark:divide-dark-border">
+                                <thead className="bg-light-background dark:bg-dark-background/50">
+                                    <tr>
+                                        <th className="px-4 py-2 text-left text-xs font-medium uppercase">Nome</th>
+                                        <th className="px-4 py-2 text-left text-xs font-medium uppercase">Contato</th>
+                                        <th className="px-4 py-2 text-left text-xs font-medium uppercase">Data/Hora Cadastro</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-light-border dark:divide-dark-border">
+                                    {registeredOnlyParticipants.map(p => (
+                                        <tr key={p.id}>
+                                            <td className="px-4 py-3 whitespace-nowrap text-sm font-medium">{p.name}</td>
+                                            <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{p.email}<br/>{p.phone}</td>
+                                            <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{new Date(p.createdAt).toLocaleString('pt-BR')}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        )}
+                        {(roletaParticipants.length === 0) && <p className="text-center py-8 text-gray-500">Nenhum participante registrado ainda.</p>}
                     </div>
                 </div>
             </div>

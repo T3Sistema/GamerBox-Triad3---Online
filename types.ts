@@ -64,3 +64,15 @@ export interface Prize {
   name: string;
   companyId: string;
 }
+
+export interface RoletaParticipant {
+  id: string;
+  createdAt: string; // Registration time
+  name: string;
+  email: string;
+  phone: string;
+  companyId: string;
+  spunAt?: string; // Spin time
+  prizeId?: string;
+  prizeName?: string;
+}

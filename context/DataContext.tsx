@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo, useCallback } from 'react';
-import { Organizer, Event, Raffle, Participant, Company, Collaborator, Prize } from '../types';
+import { Organizer, Event, Raffle, Participant, Company, Collaborator, Prize, RoletaParticipant } from '../types';
 import { supabase } from '../src/lib/supabaseClient';
 
 // Helper to use localStorage for authentication state
@@ -66,6 +66,7 @@ interface DataContextType {
   participants: Participant[];
   winners: Participant[];
   eventCompanies: Company[];
+  roletaParticipants: RoletaParticipant[];
 
   // State
   loggedInOrganizer: Organizer | null;
@@ -121,6 +122,10 @@ interface DataContextType {
 
   // Public data fetching
   fetchPublicCompanyData: (companyId: string) => Promise<void>;
+
+  // Roleta Participant mutations
+  addRoletaParticipant: (participant: Omit<RoletaParticipant, 'id' | 'createdAt' | 'spunAt' | 'prizeId' | 'prizeName'>) => Promise<{ success: boolean; data?: RoletaParticipant; message: string }>;
+  updateRoletaParticipantSpin: (participantId: string, prize: Prize) => Promise<void>;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -137,6 +142,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [companies, setCompanies] = useState<Company[]>([]);
   const [collaborators, setCollaborators] = useState<Collaborator[]>([]);
   const [prizes, setPrizes] = useState<Prize[]>([]);
+  const [roletaParticipants, setRoletaParticipants] = useState<RoletaParticipant[]>([]);
 
   // --- AUTH & SELECTION STATE (Persisted in localStorage) ---
   const [loggedInOrganizer, setLoggedInOrganizer] = useStickyState<Organizer | null>(null, 'sorteio-organizer');
@@ -237,6 +243,10 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
         if(prizeData) setPrizes(toCamel(prizeData));
       }
+
+      const { data: roletaParticipantData } = await supabase.from('roleta_participants').select('*').eq('company_id', companyId).order('created_at', { ascending: false });
+      if(roletaParticipantData) setRoletaParticipants(toCamel(roletaParticipantData));
+
   }, [setSelectedEventId]);
 
   useEffect(() => {
@@ -600,8 +610,46 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, []);
 
+  const addRoletaParticipant = async (participantData: Omit<RoletaParticipant, 'id' | 'createdAt' | 'spunAt' | 'prizeId' | 'prizeName'>): Promise<{ success: boolean; data?: RoletaParticipant; message: string }> => {
+    const { data: existing } = await supabase.from('roleta_participants').select('id, spun_at').eq('email', participantData.email.toLowerCase()).eq('company_id', participantData.companyId).maybeSingle();
+
+    if (existing && existing.spun_at) {
+        return { success: false, message: 'Você já participou e girou a roleta com este e-mail.' };
+    }
+    
+    if (existing && !existing.spun_at) {
+      const { data: existingParticipant } = await supabase.from('roleta_participants').select('*').eq('id', existing.id).single();
+      if(existingParticipant) {
+          return { success: true, data: toCamel(existingParticipant), message: 'Cadastro encontrado.' };
+      }
+    }
+
+    const { data, error } = await supabase.from('roleta_participants').insert(toSnake(participantData)).select().single();
+
+    if (error) {
+        return { success: false, message: `Ocorreu um erro: ${error.message}` };
+    }
+
+    return { success: true, data: toCamel(data), message: 'Cadastro realizado com sucesso!' };
+  };
+
+  const updateRoletaParticipantSpin = async (participantId: string, prize: Prize) => {
+      const { error } = await supabase
+          .from('roleta_participants')
+          .update(toSnake({
+              spunAt: new Date().toISOString(),
+              prizeId: prize.id,
+              prizeName: prize.name,
+          }))
+          .eq('id', participantId);
+      if (error) {
+        console.error("Error updating participant spin:", error);
+      }
+      if (loggedInCollaborator) fetchCollaboratorData(loggedInCollaborator.companyId);
+  };
+
   const value: DataContextType = {
-    organizers, events, companies, participants: eventParticipants, winners, eventCompanies,
+    organizers, events, companies, participants: eventParticipants, winners, eventCompanies, roletaParticipants,
     loggedInOrganizer: impersonatingFromAdmin ? loggedInOrganizer : (isSuperAdmin ? null : loggedInOrganizer),
     loggedInCollaborator, loggedInCollaboratorCompany,
     selectedEvent, selectedRaffle, organizerEvents, selectedEventRaffles, isSuperAdmin, impersonatingFromAdmin,
@@ -618,7 +666,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     companyCollaborators: useCallback((companyId: string) => collaborators.filter(c => c.companyId === companyId), [collaborators]),
     addCollaborator, updateCollaborator, deleteCollaborator, validateCollaborator,
     companyPrizes: useCallback((companyId: string) => prizes.filter(p => p.companyId === companyId), [prizes]),
-    savePrize, deletePrize, fetchPublicCompanyData
+    savePrize, deletePrize, fetchPublicCompanyData, addRoletaParticipant, updateRoletaParticipantSpin
   };
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;

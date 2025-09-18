@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useData } from '../context/DataContext';
@@ -7,20 +6,25 @@ import { RoletaWheel } from '../components/collaborator/RoletaWheel';
 import { WinnerModal } from '../components/collaborator/WinnerModal';
 import { Triad3Logo } from '../components/Triad3Logo';
 import { Footer } from '../components/Footer';
+import { RoletaParticipant } from '../types';
 
 export const PublicRoleta: React.FC = () => {
     const { companyId } = useParams<{ companyId: string }>();
-    const { companies, companyPrizes, fetchPublicCompanyData } = useData();
+    const { companies, companyPrizes, fetchPublicCompanyData, addRoletaParticipant, updateRoletaParticipantSpin } = useData();
     
     const [isLoading, setIsLoading] = useState(true);
     const [step, setStep] = useState<'register' | 'spin'>('register');
-    const [participant, setParticipant] = useState({ name: '', email: '', phone: '' });
+    const [participantData, setParticipantData] = useState({ name: '', email: '', phone: '' });
+    const [currentParticipant, setCurrentParticipant] = useState<RoletaParticipant | null>(null);
 
     const [isWinnerModalOpen, setIsWinnerModalOpen] = useState(false);
     const [winner, setWinner] = useState<Prize | null>(null);
     const [isSpun, setIsSpun] = useState(false);
     const [isSpinning, setIsSpinning] = useState(false);
     const [winningPrizeId, setWinningPrizeId] = useState<string | null>(null);
+    
+    const [isRegistering, setIsRegistering] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         const loadData = async () => {
@@ -38,15 +42,23 @@ export const PublicRoleta: React.FC = () => {
 
     const handleRegisterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
-        setParticipant(prev => ({ ...prev, [name]: value }));
+        setParticipantData(prev => ({ ...prev, [name]: value }));
     };
 
-    const handleRegisterSubmit = (e: React.FormEvent) => {
+    const handleRegisterSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (participant.name && participant.email && participant.phone) {
-            // TODO: No futuro, salvar os dados do participante no banco de dados aqui.
-            // Por enquanto, apenas avançando para o sorteio, conforme solicitado.
-            setStep('spin');
+        if (participantData.name && participantData.email && participantData.phone && companyId) {
+            setIsRegistering(true);
+            setError(null);
+            const result = await addRoletaParticipant({ ...participantData, companyId });
+            setIsRegistering(false);
+
+            if (result.success && result.data) {
+                setCurrentParticipant(result.data);
+                setStep('spin');
+            } else {
+                setError(result.message);
+            }
         }
     };
 
@@ -66,6 +78,9 @@ export const PublicRoleta: React.FC = () => {
         setTimeout(() => {
             setIsSpinning(false);
             setIsWinnerModalOpen(true);
+            if (currentParticipant?.id && winnerData) {
+                updateRoletaParticipantSpin(currentParticipant.id, winnerData);
+            }
         }, spinDurationMs);
     };
 
@@ -90,18 +105,19 @@ export const PublicRoleta: React.FC = () => {
                     <form onSubmit={handleRegisterSubmit} className="space-y-4">
                         <div>
                             <label htmlFor="name" className="block text-sm font-medium">Nome Completo</label>
-                            <input type="text" name="name" id="name" value={participant.name} onChange={handleRegisterChange} required className="mt-1 w-full input-style" />
+                            <input type="text" name="name" id="name" value={participantData.name} onChange={handleRegisterChange} required className="mt-1 w-full input-style" />
                         </div>
                         <div>
                             <label htmlFor="email" className="block text-sm font-medium">E-mail</label>
-                            <input type="email" name="email" id="email" value={participant.email} onChange={handleRegisterChange} required className="mt-1 w-full input-style" />
+                            <input type="email" name="email" id="email" value={participantData.email} onChange={handleRegisterChange} required className="mt-1 w-full input-style" />
                         </div>
                         <div>
                             <label htmlFor="phone" className="block text-sm font-medium">Telefone</label>
-                            <input type="tel" name="phone" id="phone" value={participant.phone} onChange={handleRegisterChange} required className="mt-1 w-full input-style" />
+                            <input type="tel" name="phone" id="phone" value={participantData.phone} onChange={handleRegisterChange} required className="mt-1 w-full input-style" />
                         </div>
-                        <button type="submit" className="w-full mt-2 px-12 py-3 text-lg font-bold text-white bg-gradient-to-r from-light-primary to-light-secondary dark:from-dark-primary dark:to-dark-secondary rounded-lg shadow-lg hover:scale-105 active:scale-100 transition-all duration-300">
-                            Girar a Roleta
+                        {error && <p className="text-sm text-center text-red-500 bg-red-100 dark:bg-red-900/50 p-2 rounded-md">{error}</p>}
+                        <button type="submit" disabled={isRegistering} className="w-full mt-2 px-12 py-3 text-lg font-bold text-white bg-gradient-to-r from-light-primary to-light-secondary dark:from-dark-primary dark:to-dark-secondary rounded-lg shadow-lg hover:scale-105 active:scale-100 transition-all duration-300 disabled:opacity-50 disabled:cursor-wait">
+                            {isRegistering ? 'Cadastrando...' : 'Girar a Roleta'}
                         </button>
                     </form>
                 </div>
@@ -137,7 +153,7 @@ export const PublicRoleta: React.FC = () => {
                 isOpen={isWinnerModalOpen} 
                 onClose={handleCloseWinnerModal} 
                 winner={winner}
-                participantName={participant.name}
+                participantName={currentParticipant?.name}
             />
             <header className="py-4">
                 <div className="container mx-auto flex flex-col items-center text-center">
