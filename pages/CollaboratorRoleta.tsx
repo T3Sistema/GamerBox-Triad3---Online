@@ -12,6 +12,9 @@ import { RoletaWheel } from '../components/collaborator/RoletaWheel';
 import { WinnerModal } from '../components/collaborator/WinnerModal';
 import { QRCodeModal } from '../components/collaborator/QRCodeModal';
 import QRCode from 'qrcode';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+
 
 export const CollaboratorRoleta: React.FC = () => {
     const { loggedInCollaboratorCompany, companyPrizes, savePrize, deletePrize, updateCompanySettings, roletaParticipants } = useData();
@@ -130,6 +133,103 @@ export const CollaboratorRoleta: React.FC = () => {
             : 'text-gray-500 hover:text-light-text dark:hover:text-dark-text'
     }`;
 
+     const handleDownloadCSV = () => {
+        const isSpunTab = activeTab === 'spun';
+        const participantsToExport = isSpunTab ? spunParticipants : registeredOnlyParticipants;
+
+        if (participantsToExport.length === 0) {
+            setNotification({ message: 'Não há dados para exportar.', type: 'error' });
+            return;
+        }
+
+        const headers = isSpunTab
+            ? ['Nome', 'Email', 'Telefone', 'Prêmio', 'Data/Hora Sorteio']
+            : ['Nome', 'Email', 'Telefone', 'Data/Hora Cadastro'];
+
+        const csvContent = [
+            headers.join(','),
+            ...participantsToExport.map(p => {
+                const commonData = [
+                    `"${p.name.replace(/"/g, '""')}"`,
+                    `"${p.email}"`,
+                    `"${p.phone}"`
+                ];
+                if (isSpunTab) {
+                    return [
+                        ...commonData,
+                        `"${(p.prizeName || '').replace(/"/g, '""')}"`,
+                        `"${p.spunAt ? new Date(p.spunAt).toLocaleString('pt-BR') : ''}"`
+                    ].join(',');
+                } else {
+                    return [
+                        ...commonData,
+                        `"${new Date(p.createdAt).toLocaleString('pt-BR')}"`
+                    ].join(',');
+                }
+            })
+        ].join('\n');
+
+        const blob = new Blob([`\uFEFF${csvContent}`], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        const filename = `participantes_roleta_${activeTab}_${loggedInCollaboratorCompany.name.replace(/\s+/g, '_')}.csv`;
+        link.setAttribute('href', url);
+        link.setAttribute('download', filename);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
+    const handleDownloadPDF = () => {
+        const isSpunTab = activeTab === 'spun';
+        const participantsToExport = isSpunTab ? spunParticipants : registeredOnlyParticipants;
+
+        if (participantsToExport.length === 0) {
+            setNotification({ message: 'Não há dados para exportar.', type: 'error' });
+            return;
+        }
+        
+        const doc = new jsPDF();
+        const head = isSpunTab
+            ? [['Nome', 'Contato', 'Prêmio', 'Data/Hora Sorteio']]
+            : [['Nome', 'Contato', 'Data/Hora Cadastro']];
+
+        const body = participantsToExport.map(p => {
+            const commonData = [
+                p.name,
+                `${p.email}\n${p.phone}`
+            ];
+            if (isSpunTab) {
+                return [
+                    ...commonData,
+                    p.prizeName || '',
+                    p.spunAt ? new Date(p.spunAt).toLocaleString('pt-BR') : ''
+                ];
+            } else {
+                return [
+                    ...commonData,
+                    new Date(p.createdAt).toLocaleString('pt-BR')
+                ];
+            }
+        });
+
+        autoTable(doc, {
+            head,
+            body,
+            startY: 20,
+            didDrawPage: (data) => {
+                doc.setFontSize(18);
+                doc.setTextColor(40);
+                const title = `Participantes - ${isSpunTab ? 'Sorteados' : 'Cadastrados'}`;
+                doc.text(title, data.settings.margin.left, 15);
+            }
+        });
+
+        const filename = `participantes_roleta_${activeTab}_${loggedInCollaboratorCompany.name.replace(/\s+/g, '_')}.pdf`;
+        doc.save(filename);
+    };
+
 
     return (
         <>
@@ -218,7 +318,24 @@ export const CollaboratorRoleta: React.FC = () => {
                 </div>
 
                 <div className="mt-12 bg-light-card dark:bg-dark-card shadow-lg rounded-lg p-6">
-                    <h3 className="text-2xl font-bold text-light-text dark:text-dark-text mb-4">Painel de Participantes</h3>
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">
+                        <h3 className="text-2xl font-bold text-light-text dark:text-dark-text">Painel de Participantes</h3>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                            <button 
+                                onClick={handleDownloadCSV}
+                                className="px-3 py-1.5 text-xs font-medium text-light-primary dark:text-dark-primary border border-light-primary dark:border-dark-primary rounded-md shadow-sm hover:bg-light-primary/10 dark:hover:bg-dark-primary/10 transition-colors"
+                            >
+                                Download CSV
+                            </button>
+                            <button 
+                                onClick={handleDownloadPDF}
+                                className="px-3 py-1.5 text-xs font-medium text-white bg-light-primary dark:bg-dark-primary rounded-md shadow-sm hover:bg-opacity-80 dark:hover:bg-opacity-80 transition-colors"
+                            >
+                                Download PDF
+                            </button>
+                        </div>
+                    </div>
+
                     <div className="border-b border-light-border dark:border-dark-border">
                         <nav className="-mb-px flex space-x-6" aria-label="Tabs">
                             <button onClick={() => setActiveTab('spun')} className={tabClasses(activeTab === 'spun')}>
