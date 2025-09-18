@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useData } from '../context/DataContext';
 import { Prize } from '../types';
@@ -10,8 +10,9 @@ import { Footer } from '../components/Footer';
 
 export const PublicRoleta: React.FC = () => {
     const { companyId } = useParams<{ companyId: string }>();
-    const { companies, companyPrizes } = useData();
-
+    const { companies, companyPrizes, fetchPublicCompanyData } = useData();
+    
+    const [isLoading, setIsLoading] = useState(true);
     const [step, setStep] = useState<'register' | 'spin'>('register');
     const [participant, setParticipant] = useState({ name: '', email: '', phone: '' });
 
@@ -20,6 +21,17 @@ export const PublicRoleta: React.FC = () => {
     const [isSpun, setIsSpun] = useState(false);
     const [isSpinning, setIsSpinning] = useState(false);
     const [winningPrizeId, setWinningPrizeId] = useState<string | null>(null);
+
+    useEffect(() => {
+        const loadData = async () => {
+            setIsLoading(true);
+            if (companyId) {
+                await fetchPublicCompanyData(companyId);
+            }
+            setIsLoading(false);
+        };
+        loadData();
+    }, [companyId, fetchPublicCompanyData]);
 
     const company = useMemo(() => companies.find(c => c.id === companyId), [companies, companyId]);
     const prizes = useMemo(() => companyId ? companyPrizes(companyId) : [], [companyId, companyPrizes]);
@@ -32,6 +44,8 @@ export const PublicRoleta: React.FC = () => {
     const handleRegisterSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (participant.name && participant.email && participant.phone) {
+            // TODO: No futuro, salvar os dados do participante no banco de dados aqui.
+            // Por enquanto, apenas avançando para o sorteio, conforme solicitado.
             setStep('spin');
         }
     };
@@ -58,6 +72,10 @@ export const PublicRoleta: React.FC = () => {
     const handleCloseWinnerModal = () => {
         setIsWinnerModalOpen(false);
     };
+
+    if (isLoading) {
+        return <div className="text-center p-8 text-white bg-dark-background min-h-screen flex items-center justify-center">Carregando...</div>;
+    }
 
     if (!company) {
         return <div className="text-center p-8 text-white bg-dark-background min-h-screen flex items-center justify-center">Estande não encontrado.</div>;

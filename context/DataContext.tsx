@@ -118,6 +118,9 @@ interface DataContextType {
   companyPrizes: (companyId: string) => Prize[];
   savePrize: (companyId: string, prizeData: Omit<Prize, 'id' | 'companyId'>, id?: string) => void;
   deletePrize: (id: string) => void;
+
+  // Public data fetching
+  fetchPublicCompanyData: (companyId: string) => Promise<void>;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -586,6 +589,17 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if(loggedInCollaborator) fetchCollaboratorData(loggedInCollaborator.companyId);
   };
 
+  const fetchPublicCompanyData = useCallback(async (companyId: string) => {
+    const { data: companyData } = await supabase.from('companies').select('*').eq('id', companyId).single();
+    if (companyData) {
+        setCompanies(toCamel([companyData]));
+    }
+    const { data: prizeData } = await supabase.from('prizes').select('*').eq('company_id', companyId);
+    if (prizeData) {
+        setPrizes(toCamel(prizeData));
+    }
+  }, []);
+
   const value: DataContextType = {
     organizers, events, companies, participants: eventParticipants, winners, eventCompanies,
     loggedInOrganizer: impersonatingFromAdmin ? loggedInOrganizer : (isSuperAdmin ? null : loggedInOrganizer),
@@ -604,7 +618,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     companyCollaborators: useCallback((companyId: string) => collaborators.filter(c => c.companyId === companyId), [collaborators]),
     addCollaborator, updateCollaborator, deleteCollaborator, validateCollaborator,
     companyPrizes: useCallback((companyId: string) => prizes.filter(p => p.companyId === companyId), [prizes]),
-    savePrize, deletePrize
+    savePrize, deletePrize, fetchPublicCompanyData
   };
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
