@@ -124,7 +124,7 @@ export const CompanyFormModal: React.FC<CompanyFormModalProps> = ({ isOpen, onCl
                     
                     <div className="space-y-4 pt-4 border-t border-light-border dark:border-dark-border">
                         <h3 className="font-semibold text-light-text dark:text-dark-text">Sistemas de Sorteio</h3>
-                         <ToggleSwitch label="SorteAI" enabled={formData.hasSorteio} onChange={(val) => handleToggleChange('hasSorteio', val)} />
+                         <ToggleSwitch label="GamerBox Triad3" enabled={formData.hasSorteio} onChange={(val) => handleToggleChange('hasSorteio', val)} />
                          <ToggleSwitch label="Roleta de Prêmios" enabled={formData.hasRoleta} onChange={(val) => handleToggleChange('hasRoleta', val)} />
                     </div>
 

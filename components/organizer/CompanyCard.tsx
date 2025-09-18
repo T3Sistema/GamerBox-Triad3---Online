@@ -39,7 +39,7 @@ export const CompanyCard: React.FC<CompanyCardProps> = ({ company, collaboratorC
         <div className="mt-4 pt-4 border-t border-light-border dark:border-dark-border/50">
             <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Sistemas Ativos</h4>
             <div className="flex items-center gap-2">
-                <SystemBadge name="SorteAI" active={company.hasSorteio} />
+                <SystemBadge name="GamerBox Triad3" active={company.hasSorteio} />
                 <SystemBadge name="Roleta" active={company.hasRoleta} />
             </div>
         </div>

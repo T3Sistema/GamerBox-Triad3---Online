@@ -57,7 +57,7 @@ export const CollaboratorDashboard: React.FC = () => {
                  <h2 className="text-2xl font-semibold text-light-text dark:text-dark-text mb-6 text-center">Sistemas Disponíveis</h2>
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <SystemCard 
-                        title="SorteAI"
+                        title="GamerBox Triad3"
                         description="Sistema de sorteio para eventos"
                         enabled={loggedInCollaboratorCompany.hasSorteio}
                         icon={<TicketIcon className="w-6 h-6" />}
