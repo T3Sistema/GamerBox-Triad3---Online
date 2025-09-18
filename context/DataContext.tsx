@@ -256,6 +256,14 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       fetchOrganizerData(loggedInOrganizer.id);
     } else if (loggedInCollaborator) {
         fetchCollaboratorData(loggedInCollaborator.companyId);
+        
+        // Poll for updates every 5 seconds to keep participant data fresh
+        const intervalId = setInterval(() => {
+            fetchCollaboratorData(loggedInCollaborator.companyId);
+        }, 5000);
+
+        // Cleanup interval on logout or component unmount
+        return () => clearInterval(intervalId);
     }
   }, [isSuperAdmin, loggedInOrganizer, loggedInCollaborator, impersonatingFromAdmin, fetchAdminData, fetchOrganizerData, fetchCollaboratorData]);
 
